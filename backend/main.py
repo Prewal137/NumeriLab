@@ -1,6 +1,14 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from api import (
+    module1_router,
+    module2_router,
+    module3_router,
+    module4_router,
+    module5_router,
+)
+
 app = FastAPI(
     title="NumeriLab API",
     description="Backend API for the NumeriLab Numerical Methods Platform",
@@ -19,6 +27,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include Module API Routers
+app.include_router(module1_router)
+app.include_router(module2_router)
+app.include_router(module3_router)
+app.include_router(module4_router)
+app.include_router(module5_router)
+
 
 @app.get("/api/health")
 def health_check():
@@ -34,4 +49,4 @@ def root():
     return {
         "message": "NumeriLab API is running",
         "docs": "/docs",
-    }
+    }
