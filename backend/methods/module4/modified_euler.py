@@ -1,7 +1,253 @@
-"""Modified Euler's Method (Heun's Method).
+"""Modified Euler's Method (Heun's Predictor-Corrector) for Ordinary Differential Equations.
 
 Module: Module IV (Numerical Solution of Ordinary Differential Equations)
 Method: 11. Modified Euler's Method
 
-Implementation will be added in a subsequent development phase.
+Mathematical formulation:
+    dy/dx = f(x, y),   y(x0) = y0
+    Predictor:
+        y_pred = y_n + h * f(x_n, y_n)
+    Corrector:
+        y_{n+1} = y_n + (h / 2) * [f(x_n, y_n) + f(x_{n+1}, y_pred)]
+    where x_{n+1} = x_n + h.
 """
+
+import math
+from typing import Any, Dict, List, Optional
+from core.errors import MathParsingError, ValidationError
+from core.parser import SafeMathParser
+from core.result import ErrorAnalysis, NumericalResult, VisualizationPayload
+
+
+def solve_modified_euler(
+    f_expr: str,
+    x0: float,
+    y0: float,
+    x_end: float,
+    h: float,
+    reference_value: Optional[float] = None,
+) -> NumericalResult:
+    """Solves an initial value problem (IVP) using Modified Euler's (Heun's) predictor-corrector method.
+
+    Args:
+        f_expr: Mathematical expression string for dy/dx = f(x, y) (e.g., 'y - x**2 + 1', 'x + y', '-2*y').
+        x0: Initial independent variable x coordinate.
+        y0: Initial condition value y(x0).
+        x_end: Target integration endpoint (must be strictly greater than x0).
+        h: Step size (positive finite real number).
+        reference_value: Optional analytical or benchmark exact value at x_end for error analysis.
+
+    Returns:
+        NumericalResult: Standardized result container with predictor-corrector iteration table,
+                         final approximation y(x_end), error metrics, and visualization payload.
+    """
+    # 1. Input Validation
+    if not f_expr or not isinstance(f_expr, str) or not f_expr.strip():
+        raise ValidationError("Function expression dy/dx = f(x, y) cannot be empty.")
+
+    for name, val in [("x0", x0), ("y0", y0), ("x_end", x_end), ("h", h)]:
+        if val is None or not isinstance(val, (int, float)):
+            raise ValidationError(f"Parameter '{name}' must be a real numerical value.")
+        if math.isnan(val) or math.isinf(val):
+            raise ValidationError(f"Parameter '{name}' must be finite (got {val}).")
+
+    x_curr = float(x0)
+    y_curr = float(y0)
+    x_target = float(x_end)
+    step_h = float(h)
+
+    if x_target <= x_curr:
+        raise ValidationError(f"x_end ({x_target}) must be strictly greater than x0 ({x_curr}).")
+
+    if step_h <= 0.0:
+        raise ValidationError(f"Step size h must be strictly positive (got {step_h}).")
+
+    # Guard against excessive step counts
+    interval_span = x_target - x_curr
+    estimated_steps = math.ceil(interval_span / step_h)
+    if estimated_steps > 100000:
+        raise ValidationError(
+            f"Step size h = {step_h} results in too many steps ({estimated_steps} > 100000). "
+            "Please use a larger step size."
+        )
+
+    # 2. Compile ODE Function f(x, y)
+    f_func = SafeMathParser.compile_function(f_expr, variable_names=("x", "y"))
+
+    # 3. Iteration Loop
+    table: List[Dict[str, Any]] = []
+    solution_points: List[Dict[str, float]] = [{"x": round(x_curr, 8), "y": round(y_curr, 8)}]
+    step_idx = 0
+
+    while x_curr < x_target - 1e-12:
+        step_idx += 1
+        current_h = min(step_h, x_target - x_curr)
+        x_next = x_curr + current_h
+
+        # Evaluate slope at current point: f(x_n, y_n)
+        try:
+            f_curr = float(f_func(x_curr, y_curr))
+        except Exception as e:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=y_curr,
+                iterations=step_idx - 1,
+                converged=False,
+                error=f"Evaluation error of f(x, y) at step {step_idx} (x={x_curr:.6f}, y={y_curr:.6f}): {str(e)}",
+                table=table,
+                explanation="Failed to evaluate derivative function at current point.",
+            )
+
+        if math.isnan(f_curr) or math.isinf(f_curr) or abs(f_curr) > 1e100:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=None,
+                iterations=step_idx - 1,
+                converged=False,
+                error=f"Initial slope f(x_n, y_n) evaluated to non-finite value ({f_curr}) at step {step_idx}.",
+                table=table,
+                explanation="Derivative function divergence at current state.",
+            )
+
+        # Predictor step: y_pred = y_n + h * f(x_n, y_n)
+        y_pred = y_curr + current_h * f_curr
+
+        if math.isnan(y_pred) or math.isinf(y_pred) or abs(y_pred) > 1e100:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=None,
+                iterations=step_idx - 1,
+                converged=False,
+                error=f"Predicted y_pred produced non-finite value ({y_pred}) at step {step_idx}.",
+                table=table,
+                explanation="Predictor step numerical overflow.",
+            )
+
+        # Evaluate slope at predicted state: f(x_{n+1}, y_pred)
+        try:
+            f_pred = float(f_func(x_next, y_pred))
+        except Exception as e:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=y_curr,
+                iterations=step_idx - 1,
+                converged=False,
+                error=f"Evaluation error at predicted point (x={x_next:.6f}, y_pred={y_pred:.6f}): {str(e)}",
+                table=table,
+                explanation="Failed to evaluate derivative function at predicted state.",
+            )
+
+        if math.isnan(f_pred) or math.isinf(f_pred) or abs(f_pred) > 1e100:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=None,
+                iterations=step_idx - 1,
+                converged=False,
+                error=f"Predicted slope f(x_{{n+1}}, y_pred) evaluated to non-finite value ({f_pred}) at step {step_idx}.",
+                table=table,
+                explanation="Predictor evaluation divergence.",
+            )
+
+        # Corrector step: y_{n+1} = y_n + (h / 2) * [f_curr + f_pred]
+        y_next = y_curr + (current_h / 2.0) * (f_curr + f_pred)
+
+        if math.isnan(y_next) or math.isinf(y_next) or abs(y_next) > 1e100:
+            return NumericalResult(
+                success=False,
+                method="modified-euler",
+                module=4,
+                final_value=None,
+                iterations=step_idx,
+                converged=False,
+                error=f"Corrected solution y diverged to non-finite value ({y_next}) at step {step_idx}.",
+                table=table,
+                explanation="Modified Euler stepping diverged beyond numerical overflow limits.",
+            )
+
+        table.append({
+            "step": step_idx,
+            "x_n": round(x_curr, 8),
+            "y_n": round(y_curr, 8),
+            "f_curr": round(f_curr, 8),
+            "y_pred": round(y_pred, 8),
+            "x_next": round(x_next, 8),
+            "f_pred": round(f_pred, 8),
+            "y_next": round(y_next, 8),
+            "step_h": round(current_h, 8),
+        })
+
+        x_curr = x_next
+        y_curr = y_next
+        solution_points.append({"x": round(x_curr, 8), "y": round(y_curr, 8)})
+
+    # 4. Error Analysis
+    err_analysis = None
+    if reference_value is not None:
+        ref = float(reference_value)
+        abs_err = abs(y_curr - ref)
+        rel_err = abs_err / abs(ref) if abs(ref) > 1e-15 else abs_err
+        err_analysis = ErrorAnalysis(
+            reference_value=ref,
+            absolute_error=abs_err,
+            relative_error=rel_err,
+        )
+
+    # 5. Visualization Payload
+    vis_payload = VisualizationPayload(
+        chart_type="line",
+        title=f"Modified Euler's Method (Heun's) for dy/dx = {f_expr}",
+        x_label="x",
+        y_label="y(x)",
+        series=[
+            {
+                "name": "Modified Euler Solution",
+                "data": solution_points,
+            }
+        ],
+        metadata={
+            "f_expr": f_expr,
+            "x0": x0,
+            "y0": y0,
+            "x_end": x_end,
+            "h": h,
+            "total_steps": step_idx,
+        },
+    )
+
+    # 6. Explanation
+    explanation = (
+        f"Modified Euler's (Heun) predictor-corrector completed {step_idx} steps with nominal h = {h} "
+        f"from x0 = {x0} to x_end = {x_end}, reaching y({x_end}) ≈ {y_curr:.8f}."
+    )
+
+    return NumericalResult(
+        success=True,
+        method="modified-euler",
+        module=4,
+        final_value=round(y_curr, 8),
+        iterations=step_idx,
+        converged=True,
+        error=None,
+        error_analysis=err_analysis,
+        table=table,
+        visualization=vis_payload,
+        explanation=explanation,
+        metadata={
+            "f_expr": f_expr,
+            "x0": x0,
+            "y0": y0,
+            "x_end": x_end,
+            "h": h,
+            "total_steps": step_idx,
+        },
+    )
