@@ -6,6 +6,9 @@
 import { FixedPointForm } from "./module1/FixedPointForm";
 import { SecantForm } from "./module1/SecantForm";
 import { GaussSeidelForm } from "./module1/GaussSeidelForm";
+import { LagrangeForm } from "./module2/LagrangeForm";
+import { InverseLagrangeForm } from "./module2/InverseLagrangeForm";
+import { CubicSplineForm } from "./module2/CubicSplineForm";
 
 export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
   if (!method) return null;
@@ -32,6 +35,33 @@ export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
     case "gauss-seidel":
       return (
         <GaussSeidelForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "lagrange":
+      return (
+        <LagrangeForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "inverse-lagrange":
+      return (
+        <InverseLagrangeForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "cubic-spline":
+      return (
+        <CubicSplineForm
           onSubmit={onSubmit}
           isLoading={isLoading}
           onReset={onReset}

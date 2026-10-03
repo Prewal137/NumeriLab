@@ -83,15 +83,18 @@ export function ConvergenceChart({ visualization, height = 300 }) {
 
   // Transform backend series data into merged Recharts rows
   // Backend series: [ { name: "x1", data: [{x: 0, y: 0.1}, {x: 1, y: 0.2}] }, ... ]
+  // Map series configurations
+  const seriesConfigMap = new Map();
   const pointsMap = new Map();
   const seriesNames = [];
 
   series.forEach((s) => {
     const sName = s.name || "Value";
     seriesNames.push(sName);
+    seriesConfigMap.set(sName, s);
     if (Array.isArray(s.data)) {
       s.data.forEach((pt) => {
-        const xVal = pt.x;
+        const xVal = typeof pt.x === "number" ? Number(pt.x.toFixed(6)) : pt.x;
         if (!pointsMap.has(xVal)) {
           pointsMap.set(xVal, { x: xVal });
         }
@@ -112,7 +115,7 @@ export function ConvergenceChart({ visualization, height = 300 }) {
     return null;
   }
 
-  // Determine if dots should be shown (hide dots if there are too many points to prevent visual clutter)
+  // Determine if dots should be shown on continuous lines
   const showDots = chartData.length <= 40;
 
   return (
@@ -134,7 +137,7 @@ export function ConvergenceChart({ visualization, height = 300 }) {
               fontFamily: "var(--mono)",
             }}
           >
-            {chartData.length} Data Points
+            {chartData.length} Points
           </span>
         </div>
       )}
@@ -159,6 +162,13 @@ export function ConvergenceChart({ visualization, height = 300 }) {
               stroke="#64748b"
               tick={{ fill: "#94a3b8", fontSize: 11 }}
               tickLine={{ stroke: "#334155" }}
+              tickFormatter={(val) => {
+                if (typeof val === "number") {
+                  if (Math.abs(val) < 0.001 && val !== 0) return val.toExponential(2);
+                  return Number.isInteger(val) ? val.toString() : val.toFixed(2);
+                }
+                return val;
+              }}
               label={{
                 value: x_label,
                 position: "insideBottom",
@@ -175,7 +185,7 @@ export function ConvergenceChart({ visualization, height = 300 }) {
               tickFormatter={(val) => {
                 if (typeof val === "number") {
                   if (Math.abs(val) < 0.001 && val !== 0) return val.toExponential(2);
-                  return val.toFixed(3);
+                  return Number.isInteger(val) ? val.toString() : val.toFixed(3);
                 }
                 return val;
               }}
@@ -205,16 +215,27 @@ export function ConvergenceChart({ visualization, height = 300 }) {
             )}
             {seriesNames.map((sName, index) => {
               const color = PALETTE[index % PALETTE.length];
+              const sCfg = seriesConfigMap.get(sName) || {};
+              const isScatter = sCfg.type === "scatter";
+
               return (
                 <Line
                   key={sName}
                   type="monotone"
                   dataKey={sName}
                   name={sName}
-                  stroke={color}
-                  strokeWidth={2}
+                  stroke={isScatter ? "transparent" : color}
+                  strokeWidth={isScatter ? 0 : 2}
+                  connectNulls={true}
                   dot={
-                    showDots
+                    isScatter
+                      ? {
+                          r: 5,
+                          fill: color,
+                          stroke: "#ffffff",
+                          strokeWidth: 1.5,
+                        }
+                      : showDots
                       ? {
                           r: 3.5,
                           fill: color,
@@ -224,7 +245,7 @@ export function ConvergenceChart({ visualization, height = 300 }) {
                       : false
                   }
                   activeDot={{
-                    r: 5,
+                    r: isScatter ? 7 : 5,
                     fill: color,
                     stroke: "#ffffff",
                     strokeWidth: 2,

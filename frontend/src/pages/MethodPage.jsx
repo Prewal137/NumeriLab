@@ -15,8 +15,11 @@ import { MethodInputForm } from "../components/methods/MethodInputForm";
 import { NumericalResultPanel } from "../components/results/NumericalResultPanel";
 import { VisualizationRenderer } from "../components/visualization/VisualizationRenderer";
 import {
+  solveCubicSpline,
   solveFixedPoint,
   solveGaussSeidel,
+  solveInverseLagrange,
+  solveLagrange,
   solveSecant,
 } from "../services/api";
 
@@ -44,6 +47,15 @@ export function MethodPage({ method, onBack }) {
           break;
         case "gauss-seidel":
           res = await solveGaussSeidel(payload);
+          break;
+        case "lagrange":
+          res = await solveLagrange(payload);
+          break;
+        case "inverse-lagrange":
+          res = await solveInverseLagrange(payload);
+          break;
+        case "cubic-spline":
+          res = await solveCubicSpline(payload);
           break;
         default:
           throw new Error(`Solver for ${method.name} is scheduled for upcoming phases.`);

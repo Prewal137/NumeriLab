@@ -14,6 +14,7 @@ function getColumnHeader(key) {
     iteration: "Iteration (k)",
     step: "Step",
     index: "Index (i)",
+    interval: "Interval (i)",
     x_current: "x_current",
     x_next: "x_next",
     x_prev: "x_prev",
@@ -35,6 +36,17 @@ function getColumnHeader(key) {
     u_exact: "u_exact",
     x_i: "x_i",
     y_i: "y_i",
+    basis_L_i: "Basis L_i(x)",
+    basis_L_prime_i: "Basis L'_i(y)",
+    contribution: "Contribution",
+    x_start: "x_i",
+    x_end: "x_{i+1}",
+    h_i: "h_i",
+    a_i: "a_i",
+    b_i: "b_i",
+    c_i: "c_i",
+    d_i: "d_i",
+    polynomial: "Piecewise S_i(x)",
   };
   return map[key] || key.replace(/_/g, " ");
 }
@@ -54,8 +66,8 @@ export function ResultTable({ table, title, maxHeight = "400px" }) {
 
     const allKeys = Array.from(keySet);
 
-    // Prioritize step/iteration first, error metrics last
-    const primaryKey = allKeys.find((k) => ["iteration", "step", "index", "k"].includes(k));
+    // Prioritize step/iteration/interval first, error metrics last
+    const primaryKey = allKeys.find((k) => ["iteration", "step", "index", "interval", "k"].includes(k));
     const errorKeys = allKeys.filter((k) => k.includes("error"));
     const middleKeys = allKeys.filter((k) => k !== primaryKey && !errorKeys.includes(k));
 
