@@ -5,6 +5,7 @@
 
 import { ConvergenceChart } from "./ConvergenceChart";
 import { FunctionPlot } from "./FunctionPlot";
+import { SurfaceHeatmapPlot } from "./SurfaceHeatmapPlot";
 import { VisualizationEmptyState } from "./VisualizationEmptyState";
 
 export function VisualizationRenderer({
@@ -34,6 +35,11 @@ export function VisualizationRenderer({
 
   // Dispatch based on payload chart_type
   switch (chartType) {
+    case "surface":
+    case "heatmap":
+    case "field":
+      return <SurfaceHeatmapPlot visualization={visualization} height={height} />;
+
     case "function_curve":
     case "curve":
       return <FunctionPlot visualization={visualization} height={height} />;

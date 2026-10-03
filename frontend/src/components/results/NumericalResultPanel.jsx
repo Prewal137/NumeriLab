@@ -24,7 +24,11 @@ export function NumericalResultPanel({ result, maxHeight = "400px" }) {
     <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
       {/* Error Analysis Metrics (if available) */}
       {result.error_analysis && (
-        <ErrorAnalysis errorAnalysis={result.error_analysis} />
+        <ErrorAnalysis
+          errorAnalysis={result.error_analysis}
+          metadata={result.metadata}
+          methodId={result.method}
+        />
       )}
 
       {/* Step-by-Step Iteration Table */}

@@ -59,14 +59,16 @@ export const ENDPOINTS = {
 export const postSolverRequest = async (endpoint, payload) => {
   try {
     const sanitizedPayload = { ...payload };
-    if (typeof sanitizedPayload.function === "string") {
-      sanitizedPayload.function = normalizeMathExpression(sanitizedPayload.function);
-    }
-    if (typeof sanitizedPayload.g_expr === "string") {
-      sanitizedPayload.g_expr = normalizeMathExpression(sanitizedPayload.g_expr);
-    }
-    if (typeof sanitizedPayload.f_expr === "string") {
-      sanitizedPayload.f_expr = normalizeMathExpression(sanitizedPayload.f_expr);
+    const exprFields = [
+      "function", "g_expr", "f_expr", "p_expr", "q_expr", "r_expr",
+      "source_expr", "u0_expr", "left_expr", "right_expr",
+      "top_val", "bottom_val", "left_val", "right_val",
+      "reference_solution_expr", "reference_expr"
+    ];
+    for (const key of exprFields) {
+      if (typeof sanitizedPayload[key] === "string") {
+        sanitizedPayload[key] = normalizeMathExpression(sanitizedPayload[key]);
+      }
     }
 
     const response = await api.post(endpoint, sanitizedPayload);

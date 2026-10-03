@@ -15,6 +15,9 @@ import { RombergForm } from "./module3/RombergForm";
 import { EulerForm } from "./module4/EulerForm";
 import { ModifiedEulerForm } from "./module4/ModifiedEulerForm";
 import { RK4Form } from "./module4/RK4Form";
+import { LinearBVPForm } from "./module5/LinearBVPForm";
+import { LaplacePoissonForm } from "./module5/LaplacePoissonForm";
+import { CrankNicolsonForm } from "./module5/CrankNicolsonForm";
 
 export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
   if (!method) return null;
@@ -122,6 +125,33 @@ export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
     case "rk4":
       return (
         <RK4Form
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "linear-bvp":
+      return (
+        <LinearBVPForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "laplace-poisson":
+      return (
+        <LaplacePoissonForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "crank-nicolson":
+      return (
+        <CrankNicolsonForm
           onSubmit={onSubmit}
           isLoading={isLoading}
           onReset={onReset}

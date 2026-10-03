@@ -16,12 +16,15 @@ import { NumericalResultPanel } from "../components/results/NumericalResultPanel
 import { VisualizationRenderer } from "../components/visualization/VisualizationRenderer";
 import { formatNumber } from "../components/results/formatters";
 import {
+  solveCrankNicolson,
   solveCubicSpline,
   solveEuler,
   solveFixedPoint,
   solveGaussSeidel,
   solveInverseLagrange,
   solveLagrange,
+  solveLaplacePoisson,
+  solveLinearBVP,
   solveModifiedEuler,
   solveRK4,
   solveRomberg,
@@ -82,8 +85,26 @@ export function MethodPage({ method, onBack }) {
         case "rk4":
           res = await solveRK4(payload);
           break;
+        case "linear-bvp":
+          res = await solveLinearBVP(payload);
+          break;
+        case "laplace-poisson":
+          res = await solveLaplacePoisson(payload);
+          break;
+        case "crank-nicolson":
+          res = await solveCrankNicolson(payload);
+          break;
         default:
           throw new Error(`Solver for ${method.name} is scheduled for upcoming phases.`);
+      }
+
+      if (res && res.metadata) {
+        if (payload.reference_solution_expr) {
+          res.metadata.reference_solution_expr = payload.reference_solution_expr;
+        }
+        if (payload.reference_expr) {
+          res.metadata.reference_expr = payload.reference_expr;
+        }
       }
 
       setResult(res);
@@ -110,6 +131,14 @@ export function MethodPage({ method, onBack }) {
       return Number.isInteger(val) ? val.toString() : val.toFixed(8);
     }
     if (Array.isArray(val)) {
+      if (val.length > 0 && Array.isArray(val[0])) {
+        return `2D Grid Matrix (${val.length} × ${val[0].length})`;
+      }
+      if (val.length > 8) {
+        const head = val.slice(0, 3).map((v) => (typeof v === "number" ? v.toFixed(4) : v)).join(", ");
+        const tail = val.slice(-2).map((v) => (typeof v === "number" ? v.toFixed(4) : v)).join(", ");
+        return `[ ${head}, ..., ${tail} ] (${val.length} nodes)`;
+      }
       return `[ ${val.map((v) => (typeof v === "number" ? v.toFixed(6) : v)).join(", ")} ]`;
     }
     return JSON.stringify(val);
@@ -295,9 +324,27 @@ export function MethodPage({ method, onBack }) {
                 </div>
 
                 <div style={{ padding: "0.75rem", backgroundColor: "#0f172a", borderRadius: "6px", border: "1px solid #334155" }}>
-                  <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase" }}>Iterations / Steps</div>
+                  <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase" }}>
+                    {method.id === "linear-bvp"
+                      ? "Grid Discretization"
+                      : method.id === "crank-nicolson"
+                      ? "Time Steps"
+                      : method.id === "laplace-poisson"
+                      ? "Relaxation Iterations"
+                      : "Iterations / Steps"}
+                  </div>
                   <div style={{ fontSize: "1.05rem", fontWeight: 700, color: "#f8fafc", marginTop: "2px" }}>
-                    {result?.iterations !== undefined && result?.iterations !== null ? result.iterations : "—"}
+                    {result
+                      ? method.id === "linear-bvp"
+                        ? `${result.metadata?.n_subintervals || result.iterations - 1} Intervals (${result.iterations} Nodes)`
+                        : method.id === "crank-nicolson"
+                        ? `${result.iterations} Steps (nt=${result.metadata?.nt || result.iterations + 1})`
+                        : method.id === "laplace-poisson"
+                        ? `${result.iterations} Iterations`
+                        : result.iterations !== undefined && result.iterations !== null
+                        ? result.iterations
+                        : "—"
+                      : "—"}
                   </div>
                 </div>
 
@@ -549,6 +596,51 @@ export function MethodPage({ method, onBack }) {
                 <div><strong>Principle:</strong> Evaluates four trial slopes per step (initial slope k₁, two midpoint slopes k₂, k₃, and endpoint slope k₄) and computes a Simpson's-weighted average slope.</div>
                 <div><strong>Local Truncation Error:</strong> O(h⁵) per step.</div>
                 <div><strong>Global Truncation Error:</strong> O(h⁴) cumulative error (Fourth-order accurate).</div>
+              </>
+            )}
+
+            {method.id === "linear-bvp" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Two-Point Linear Boundary Value Problem (Finite Differences):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  <div><strong>Governing ODE:</strong> y'' + p(x)·y' + q(x)·y = r(x),  x ∈ [a, b]</div>
+                  <div><strong>Central Stencil:</strong> y''_i ≈ (y_{'{'}i+1{'}'} - 2y_i + y_{'{'}i-1{'}'}) / h²,  y'_i ≈ (y_{'{'}i+1{'}'} - y_{'{'}i-1{'}'}) / (2h)</div>
+                  <div style={{ borderTop: "1px solid #334155", paddingTop: "0.35rem", marginTop: "0.2rem", color: "#38bdf8" }}>
+                    (1 - h/2·p_i)·y_{'{'}i-1{'}'} + (-2 + h²·q_i)·y_i + (1 + h/2·p_i)·y_{'{'}i+1{'}'} = h²·r_i
+                  </div>
+                </div>
+                <div><strong>Boundary Conditions:</strong> Handles Dirichlet (y=γ) and Robin/Neumann (α·y + β·y' = γ) using second-order forward/backward difference stencils at the boundaries.</div>
+                <div><strong>Global Discretization Error:</strong> O(h²) throughout the interior grid.</div>
+              </>
+            )}
+
+            {method.id === "laplace-poisson" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>2D Laplace & Poisson Equation (Five-Point Finite Difference):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  <div><strong>Governing PDE:</strong> ∂²u/∂x² + ∂²u/∂y² = f(x, y)  on [x_min, x_max] × [y_min, y_max]</div>
+                  <div><strong>Five-Point Stencil:</strong> (u_{'{'}i+1,j{'}'} - 2u_{'{'}i,j{'}'} + u_{'{'}i-1,j{'}'})/Δx² + (u_{'{'}i,j+1{'}'} - 2u_{'{'}i,j{'}'} + u_{'{'}i,j-1{'}'})/Δy² = f_{'{'}i,j{'}'}</div>
+                  <div style={{ borderTop: "1px solid #334155", paddingTop: "0.35rem", marginTop: "0.2rem", color: "#38bdf8" }}>
+                    u_{'{'}i,j{'}'}^(k+1) = [ Δy²(u_{'{'}i+1,j{'}'}^(k) + u_{'{'}i-1,j{'}'}^(k+1)) + Δx²(u_{'{'}i,j+1{'}'}^(k) + u_{'{'}i,j-1{'}'}^(k+1)) - Δx²Δy²·f_{'{'}i,j{'}'} ] / [ 2(Δx² + Δy²) ]
+                  </div>
+                </div>
+                <div><strong>Relaxation Solver:</strong> Gauss-Seidel point iterative relaxation with immediate coordinate updates.</div>
+                <div><strong>Convergence Criterion:</strong> Max field difference |u_new - u_old| &lt; ε across all interior grid nodes.</div>
+              </>
+            )}
+
+            {method.id === "crank-nicolson" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Crank-Nicolson Method for 1D Transient Heat Equation:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  <div><strong>Governing PDE:</strong> ∂u/∂t = α · (∂²u/∂x²),  x ∈ [x_min, x_max], t ∈ [t_start, t_end]</div>
+                  <div><strong>Mesh Ratio Parameter:</strong> r = (α · Δt) / (2 · Δx²)</div>
+                  <div style={{ borderTop: "1px solid #334155", paddingTop: "0.35rem", marginTop: "0.2rem", color: "#38bdf8" }}>
+                    -r·u_{'{'}i-1{'}'}^(m+1) + (1 + 2r)·u_i^(m+1) - r·u_{'{'}i+1{'}'}^(m+1) = r·u_{'{'}i-1{'}'}^m + (1 - 2r)·u_i^m + r·u_{'{'}i+1{'}'}^m
+                  </div>
+                </div>
+                <div><strong>Stability & Accuracy:</strong> Implicit, unconditionally stable scheme (no strict Fourier mesh restriction on Δt); achieves second-order accuracy O(Δt² + Δx²) in both space and time.</div>
+                <div><strong>Linear System:</strong> Solves a tridiagonal linear algebraic system at each discrete time advancement step.</div>
               </>
             )}
           </div>

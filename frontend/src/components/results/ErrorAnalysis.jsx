@@ -5,7 +5,7 @@
 
 import { formatCellValue, formatNumber } from "./formatters";
 
-export function ErrorAnalysis({ errorAnalysis }) {
+export function ErrorAnalysis({ errorAnalysis, metadata, methodId }) {
   if (!errorAnalysis || typeof errorAnalysis !== "object") return null;
 
   const {
@@ -24,13 +24,59 @@ export function ErrorAnalysis({ errorAnalysis }) {
 
   if (!hasContent) return null;
 
-  // Format relative error percentage note if scalar
+  // Format reference target description concisely
+  const formatReferenceTarget = () => {
+    if (reference_value === null || reference_value === undefined) return "—";
+
+    if (metadata?.reference_solution_expr) {
+      return `y(x) = ${metadata.reference_solution_expr}`;
+    }
+    if (metadata?.reference_expr) {
+      return `u(x, t) = ${metadata.reference_expr}`;
+    }
+
+    if (methodId === "linear-bvp") {
+      return Array.isArray(reference_value)
+        ? "Analytical Benchmark Curve y(x)"
+        : formatCellValue(reference_value);
+    }
+
+    if (methodId === "crank-nicolson") {
+      return Array.isArray(reference_value)
+        ? "Analytical Benchmark Profile u(x, t_final)"
+        : formatCellValue(reference_value);
+    }
+
+    if (Array.isArray(reference_value)) {
+      return `Exact Benchmark Vector (${reference_value.length} nodes)`;
+    }
+
+    return formatCellValue(reference_value);
+  };
+
+  // Format absolute error concisely when array of node errors
+  const formatAbsError = (val) => {
+    if (val === null || val === undefined) return "—";
+    if (Array.isArray(val)) {
+      const maxVal = Math.max(...val.map((v) => Math.abs(Number(v) || 0)));
+      return `Max |Δ| = ${formatNumber(maxVal, 8)}`;
+    }
+    return formatCellValue(val);
+  };
+
+  // Format relative error percentage note
   const formatRelError = (val) => {
     if (val === null || val === undefined) return "—";
     if (typeof val === "number") {
       const formatted = formatNumber(val, 8);
-      const pct = (val * 100).toExponential(4);
-      return `${formatted} (${pct}%)`;
+      const pctVal = val * 100;
+      let pctStr;
+      if (pctVal < 0.01 && pctVal > 0) {
+        pctStr = `${pctVal.toExponential(3)}%`;
+      } else {
+        pctStr = `${pctVal.toFixed(3)}%`;
+      }
+      return `${formatted} (≈ ${pctStr})`;
     }
     return formatCellValue(val);
   };
@@ -69,7 +115,7 @@ export function ErrorAnalysis({ errorAnalysis }) {
               Reference Target
             </div>
             <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#38bdf8", fontFamily: "var(--mono)", marginTop: "2px", wordBreak: "break-all" }}>
-              {formatCellValue(reference_value)}
+              {formatReferenceTarget()}
             </div>
           </div>
         )}
@@ -77,10 +123,10 @@ export function ErrorAnalysis({ errorAnalysis }) {
         {absolute_error !== null && absolute_error !== undefined && (
           <div style={{ padding: "0.6rem 0.75rem", backgroundColor: "#1e293b", borderRadius: "6px", border: "1px solid #334155" }}>
             <div style={{ fontSize: "0.7rem", color: "#64748b", textTransform: "uppercase", fontWeight: 600 }}>
-              Absolute Error (|x - x*|)
+              {Array.isArray(absolute_error) ? "Max Absolute Error" : "Absolute Error (|x - x*|)"}
             </div>
             <div style={{ fontSize: "0.95rem", fontWeight: 700, color: "#fca5a5", fontFamily: "var(--mono)", marginTop: "2px", wordBreak: "break-all" }}>
-              {formatCellValue(absolute_error)}
+              {formatAbsError(absolute_error)}
             </div>
           </div>
         )}
