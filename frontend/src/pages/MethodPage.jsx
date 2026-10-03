@@ -13,6 +13,7 @@ import { useState } from "react";
 import { getModuleById } from "../data/methods";
 import { MethodInputForm } from "../components/methods/MethodInputForm";
 import { NumericalResultPanel } from "../components/results/NumericalResultPanel";
+import { VisualizationRenderer } from "../components/visualization/VisualizationRenderer";
 import {
   solveFixedPoint,
   solveGaussSeidel,
@@ -292,16 +293,15 @@ export function MethodPage({ method, onBack }) {
                 <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#f8fafc" }}>
                   Interactive Visualization
                 </h3>
-                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Chart Canvas Slot</span>
+                <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
+                  {result?.visualization?.chart_type ? `${result.visualization.chart_type.toUpperCase()} PLOT` : "Trajectory Canvas"}
+                </span>
               </div>
-              <div className="slot-placeholder" style={{ minHeight: "220px" }}>
-                <div style={{ fontWeight: 600, color: "#cbd5e1", marginBottom: "0.25rem" }}>
-                  Graphical Plot Viewport
-                </div>
-                <div style={{ fontSize: "0.825rem", maxWidth: "380px" }}>
-                  High-resolution function curves, iteration step trajectories, and convergence rate curves will render here in upcoming charting phases.
-                </div>
-              </div>
+              <VisualizationRenderer
+                visualization={result?.visualization}
+                isLoading={isLoading}
+                height={280}
+              />
             </div>
 
             {/* Iteration Table & Error Analysis Component Panel */}
