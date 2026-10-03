@@ -14,13 +14,17 @@ import { getModuleById } from "../data/methods";
 import { MethodInputForm } from "../components/methods/MethodInputForm";
 import { NumericalResultPanel } from "../components/results/NumericalResultPanel";
 import { VisualizationRenderer } from "../components/visualization/VisualizationRenderer";
+import { formatNumber } from "../components/results/formatters";
 import {
   solveCubicSpline,
   solveFixedPoint,
   solveGaussSeidel,
   solveInverseLagrange,
   solveLagrange,
+  solveRomberg,
   solveSecant,
+  solveSimpson,
+  solveTrapezoidal,
 } from "../services/api";
 
 export function MethodPage({ method, onBack }) {
@@ -57,6 +61,15 @@ export function MethodPage({ method, onBack }) {
         case "cubic-spline":
           res = await solveCubicSpline(payload);
           break;
+        case "trapezoidal":
+          res = await solveTrapezoidal(payload);
+          break;
+        case "simpson":
+          res = await solveSimpson(payload);
+          break;
+        case "romberg":
+          res = await solveRomberg(payload);
+          break;
         default:
           throw new Error(`Solver for ${method.name} is scheduled for upcoming phases.`);
       }
@@ -89,6 +102,12 @@ export function MethodPage({ method, onBack }) {
     }
     return JSON.stringify(val);
   };
+
+  const hasHighRefAccuracy =
+    result &&
+    result.error_analysis?.absolute_error !== null &&
+    result.error_analysis?.absolute_error !== undefined &&
+    result.error_analysis.absolute_error < 1e-6;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -226,9 +245,13 @@ export function MethodPage({ method, onBack }) {
                     <span className="badge" style={{ backgroundColor: "rgba(34, 197, 94, 0.15)", color: "#22c55e", border: "1px solid rgba(34, 197, 94, 0.4)" }}>
                       ✓ Converged
                     </span>
+                  ) : hasHighRefAccuracy ? (
+                    <span className="badge" style={{ backgroundColor: "rgba(56, 189, 248, 0.15)", color: "#38bdf8", border: "1px solid rgba(56, 189, 248, 0.4)" }}>
+                      ★ High Accuracy ({result.iterations} Levels)
+                    </span>
                   ) : (
                     <span className="badge" style={{ backgroundColor: "rgba(245, 158, 11, 0.15)", color: "#f59e0b", border: "1px solid rgba(245, 158, 11, 0.4)" }}>
-                      ⚠ Max Iterations Reached
+                      ⚠ Max Iterations / Levels Reached
                     </span>
                   )
                 ) : (
@@ -272,11 +295,23 @@ export function MethodPage({ method, onBack }) {
                     style={{
                       fontSize: "1.05rem",
                       fontWeight: 700,
-                      color: result ? (result.converged ? "#22c55e" : "#f59e0b") : "#94a3b8",
+                      color: result
+                        ? result.converged
+                          ? "#22c55e"
+                          : hasHighRefAccuracy
+                          ? "#38bdf8"
+                          : "#f59e0b"
+                        : "#94a3b8",
                       marginTop: "2px",
                     }}
                   >
-                    {result ? (result.converged ? "Converged" : "Not Converged") : "Idle"}
+                    {result
+                      ? result.converged
+                        ? "Converged"
+                        : hasHighRefAccuracy
+                        ? "High Accuracy (Max Levels)"
+                        : "Not Converged"
+                      : "Idle"}
                   </div>
                 </div>
               </div>
@@ -295,6 +330,11 @@ export function MethodPage({ method, onBack }) {
                   }}
                 >
                   <strong style={{ color: "#38bdf8" }}>Explanation:</strong> {result.explanation}
+                  {hasHighRefAccuracy && !result.converged && (
+                    <div style={{ color: "#94a3b8", marginTop: "0.4rem", fontSize: "0.8rem", borderTop: "1px solid #1e293b", paddingTop: "0.4rem" }}>
+                      💡 <strong style={{ color: "#38bdf8" }}>Accuracy vs. Convergence Note:</strong> The result demonstrates high analytical benchmark accuracy (|error| ≈ {formatNumber(result.error_analysis.absolute_error)}), though the internal step difference stopping criterion ({result.metadata?.tolerance || "tolerance"}) was not met within {result.iterations} levels.
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -335,25 +375,127 @@ export function MethodPage({ method, onBack }) {
 
       {/* Theory & Pedagogical Formulation View */}
       {activeWorkspaceView === "theory" && (
-        <div className="panel-card" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          <h3 style={{ margin: 0, fontSize: "1.2rem", color: "#f8fafc" }}>
-            Theoretical Foundation: {method.name}
-          </h3>
-          <p style={{ color: "#94a3b8", lineHeight: 1.6 }}>
-            {method.description}
-          </p>
+        <div className="panel-card" style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <div>
+            <h3 style={{ margin: "0 0 0.5rem 0", fontSize: "1.25rem", color: "#f8fafc" }}>
+              Theoretical Foundation: {method.name}
+            </h3>
+            <p style={{ color: "#94a3b8", lineHeight: 1.6, margin: 0 }}>
+              {method.description}
+            </p>
+          </div>
+
           <div
             style={{
               padding: "1.25rem",
               backgroundColor: "#0f172a",
               borderRadius: "8px",
               border: "1px solid #334155",
+              display: "flex",
+              flexDirection: "column",
+              gap: "0.85rem",
               fontSize: "0.9rem",
               color: "#cbd5e1",
               lineHeight: 1.6,
             }}
           >
-            Mathematical equations, order of accuracy O(h^p), convergence criteria, and algorithmic notes will be provided in this panel.
+            {method.id === "trapezoidal" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Composite Trapezoidal Quadrature:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  ∫ [a, b] f(x) dx ≈ (h / 2) · [ f(x₀) + 2·∑_{'{'}i=1{'}'}^{'{'}n-1{'}'} f(xᵢ) + f(xₙ) ]
+                </div>
+                <div><strong>Step Size:</strong> h = (b - a) / n</div>
+                <div><strong>Global Truncation Error:</strong> E_T = -((b - a)·h² / 12) · f''(ξ) ∈ O(h²)</div>
+                <div><strong>Quadrature Weights:</strong> w = [ 1, 2, 2, ..., 2, 1 ]</div>
+              </>
+            )}
+
+            {method.id === "simpson" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Composite Simpson's 1/3 Rule (Parabolic Quadrature):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  ∫ [a, b] f(x) dx ≈ (h / 3) · [ f(x₀) + 4·∑_{'{'}i=odd{'}'} f(xᵢ) + 2·∑_{'{'}i=even{'}'} f(xᵢ) + f(xₙ) ]
+                </div>
+                <div><strong>Step Size:</strong> h = (b - a) / n (where n must be an <em>even</em> positive integer)</div>
+                <div><strong>Global Truncation Error:</strong> E_S = -((b - a)·h⁴ / 180) · f⁽⁴⁾(ξ) ∈ O(h⁴)</div>
+                <div><strong>Exactness:</strong> Exactly integrates all polynomials up to degree 3.</div>
+                <div><strong>Quadrature Weights:</strong> w = [ 1, 4, 2, 4, 2, ..., 4, 1 ]</div>
+              </>
+            )}
+
+            {method.id === "romberg" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Romberg Integration via Richardson Extrapolation:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  R(k, j) = R(k, j-1) + [ R(k, j-1) - R(k-1, j-1) ] / (4ʲ - 1),  for j = 1, ..., k
+                </div>
+                <div><strong>Level 0 Base:</strong> R(k, 0) = Composite Trapezoidal estimate with 2^k subintervals</div>
+                <div><strong>Column Accuracy Order:</strong> Column j achieves asymptotic error O(h^(2j+2))</div>
+                <div><strong>Stopping Condition:</strong> |R(k, k) - R(k-1, k-1)| &lt; ε or max levels reached</div>
+              </>
+            )}
+
+            {method.id === "lagrange" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Lagrange Polynomial Interpolation:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  P(x) = ∑_{'{'}i=0{'}'}^{'{'}n-1{'}'} yᵢ · Lᵢ(x), where Lᵢ(x) = ∏_{'{'}j ≠ i{'}'} (x - xⱼ) / (xᵢ - xⱼ)
+                </div>
+                <div><strong>Degree:</strong> Produces unique polynomial of degree at most (n - 1) passing through all n points.</div>
+              </>
+            )}
+
+            {method.id === "inverse-lagrange" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Lagrange Inverse Interpolation:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  x(y) = ∑_{'{'}i=0{'}'}^{'{'}n-1{'}'} xᵢ · L'ᵢ(y), where L'ᵢ(y) = ∏_{'{'}j ≠ i{'}'} (y - yⱼ) / (yᵢ - yⱼ)
+                </div>
+                <div><strong>Requirement:</strong> All y coordinates must be strictly distinct to avoid division by zero.</div>
+              </>
+            )}
+
+            {method.id === "cubic-spline" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Piecewise Natural Cubic Spline S(x):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  Sᵢ(x) = aᵢ + bᵢ(x - xᵢ) + cᵢ(x - xᵢ)² + dᵢ(x - xᵢ)³,  for x ∈ [xᵢ, xᵢ₊₁]
+                </div>
+                <div><strong>Continuity:</strong> C² continuity (continuous function, first derivative, and second derivative at interior knots).</div>
+                <div><strong>Boundary Conditions:</strong> Natural boundary S''(x₀) = S''(xₙ₋₁) = 0 (c₀ = cₙ₋₁ = 0).</div>
+              </>
+            )}
+
+            {method.id === "fixed-point" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Fixed Point Iteration:</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  x_{'{'}k+1{'}'} = g(x_k)
+                </div>
+                <div><strong>Convergence Criterion:</strong> Guaranteed when |g'(x)| &lt; 1 in neighborhood of fixed point.</div>
+              </>
+            )}
+
+            {method.id === "secant" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Secant Method (Root-Finding):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  x_{'{'}k+1{'}'} = x_k - f(x_k) · (x_k - x_{'{'}k-1{'}'}) / [ f(x_k) - f(x_{'{'}k-1{'}'}) ]
+                </div>
+                <div><strong>Convergence Order:</strong> Superlinear with convergence rate p = (1 + √5)/2 ≈ 1.618.</div>
+              </>
+            )}
+
+            {method.id === "gauss-seidel" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Gauss-Seidel Iterative Method (Linear Systems):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  xᵢ^(k+1) = [ bᵢ - ∑_{'{'}j &lt; i{'}'} a_{'{'}ij{'}'} xⱼ^(k+1) - ∑_{'{'}j &gt; i{'}'} a_{'{'}ij{'}'} xⱼ^(k) ] / a_{'{'}ii{'}'}
+                </div>
+                <div><strong>Convergence Guarantee:</strong> Guaranteed for strictly diagonally dominant or symmetric positive-definite matrices.</div>
+              </>
+            )}
           </div>
         </div>
       )}

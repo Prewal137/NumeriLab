@@ -39,6 +39,7 @@ export function VisualizationRenderer({
       return <FunctionPlot visualization={visualization} height={height} />;
 
     case "line":
+    case "area":
     case "convergence":
     case "iteration_trajectory":
     case "scatter":

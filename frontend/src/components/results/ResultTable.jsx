@@ -15,6 +15,7 @@ function getColumnHeader(key) {
     step: "Step",
     index: "Index (i)",
     interval: "Interval (i)",
+    level: "Level (k)",
     x_current: "x_current",
     x_next: "x_next",
     x_prev: "x_prev",
@@ -36,6 +37,8 @@ function getColumnHeader(key) {
     u_exact: "u_exact",
     x_i: "x_i",
     y_i: "y_i",
+    f_x_i: "f(x_i)",
+    weight: "Weight (w_i)",
     basis_L_i: "Basis L_i(x)",
     basis_L_prime_i: "Basis L'_i(y)",
     contribution: "Contribution",
@@ -47,6 +50,12 @@ function getColumnHeader(key) {
     c_i: "c_i",
     d_i: "d_i",
     polynomial: "Piecewise S_i(x)",
+    subintervals: "Subintervals (n)",
+    step_size: "Step Size (h)",
+    trapezoidal_R_k_0: "Trapezoidal R(k,0)",
+    extrapolations: "Extrapolations R(k,j)",
+    best_estimate: "Best Estimate R(k,k)",
+    estimated_error: "Step Difference (|Δ|)",
   };
   return map[key] || key.replace(/_/g, " ");
 }
@@ -66,8 +75,8 @@ export function ResultTable({ table, title, maxHeight = "400px" }) {
 
     const allKeys = Array.from(keySet);
 
-    // Prioritize step/iteration/interval first, error metrics last
-    const primaryKey = allKeys.find((k) => ["iteration", "step", "index", "interval", "k"].includes(k));
+    // Prioritize step/iteration/interval/level first, error metrics last
+    const primaryKey = allKeys.find((k) => ["iteration", "step", "index", "interval", "level", "k"].includes(k));
     const errorKeys = allKeys.filter((k) => k.includes("error"));
     const middleKeys = allKeys.filter((k) => k !== primaryKey && !errorKeys.includes(k));
 
@@ -166,7 +175,7 @@ export function ResultTable({ table, title, maxHeight = "400px" }) {
               >
                 {columns.map((col) => {
                   const val = row[col];
-                  const isPrimary = ["iteration", "step", "index", "k"].includes(col);
+                  const isPrimary = ["iteration", "step", "index", "interval", "level", "k"].includes(col);
                   const isError = col.includes("error");
 
                   return (
@@ -181,9 +190,49 @@ export function ResultTable({ table, title, maxHeight = "400px" }) {
                           : "#f8fafc",
                         fontFamily: "var(--mono)",
                         fontWeight: isPrimary ? 600 : 400,
+                        verticalAlign: "middle",
                       }}
                     >
-                      {formatCellValue(val)}
+                      {Array.isArray(val) ? (
+                        <div
+                          style={{
+                            display: "flex",
+                            flexWrap: "wrap",
+                            gap: "0.3rem",
+                            maxWidth: "400px",
+                            whiteSpace: "normal",
+                            alignItems: "center",
+                          }}
+                        >
+                          {val.length === 0 ? (
+                            <span style={{ color: "#64748b" }}>—</span>
+                          ) : (
+                            val.map((item, idx) => (
+                              <span
+                                key={idx}
+                                style={{
+                                  display: "inline-block",
+                                  padding: "0.15rem 0.4rem",
+                                  backgroundColor: "#1e293b",
+                                  border: "1px solid #334155",
+                                  borderRadius: "4px",
+                                  fontSize: "0.75rem",
+                                  color: "#e2e8f0",
+                                  fontFamily: "var(--mono)",
+                                }}
+                              >
+                                {formatCellValue(item)}
+                              </span>
+                            ))
+                          )}
+                        </div>
+                      ) : typeof val === "string" && val.length > 40 ? (
+                        <div style={{ maxWidth: "340px", whiteSpace: "normal", wordBreak: "break-word" }}>
+                          {val}
+                        </div>
+                      ) : (
+                        formatCellValue(val)
+                      )}
                     </td>
                   );
                 })}

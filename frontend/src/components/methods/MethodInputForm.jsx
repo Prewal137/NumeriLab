@@ -9,6 +9,9 @@ import { GaussSeidelForm } from "./module1/GaussSeidelForm";
 import { LagrangeForm } from "./module2/LagrangeForm";
 import { InverseLagrangeForm } from "./module2/InverseLagrangeForm";
 import { CubicSplineForm } from "./module2/CubicSplineForm";
+import { TrapezoidalForm } from "./module3/TrapezoidalForm";
+import { SimpsonForm } from "./module3/SimpsonForm";
+import { RombergForm } from "./module3/RombergForm";
 
 export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
   if (!method) return null;
@@ -62,6 +65,33 @@ export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
     case "cubic-spline":
       return (
         <CubicSplineForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "trapezoidal":
+      return (
+        <TrapezoidalForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "simpson":
+      return (
+        <SimpsonForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "romberg":
+      return (
+        <RombergForm
           onSubmit={onSubmit}
           isLoading={isLoading}
           onReset={onReset}

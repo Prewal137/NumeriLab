@@ -6,6 +6,7 @@
  */
 
 import axios from "axios";
+import { normalizeMathExpression } from "../utils/mathUtils";
 
 const api = axios.create({
   baseURL: "http://127.0.0.1:8000",
@@ -57,7 +58,18 @@ export const ENDPOINTS = {
  */
 export const postSolverRequest = async (endpoint, payload) => {
   try {
-    const response = await api.post(endpoint, payload);
+    const sanitizedPayload = { ...payload };
+    if (typeof sanitizedPayload.function === "string") {
+      sanitizedPayload.function = normalizeMathExpression(sanitizedPayload.function);
+    }
+    if (typeof sanitizedPayload.g_expr === "string") {
+      sanitizedPayload.g_expr = normalizeMathExpression(sanitizedPayload.g_expr);
+    }
+    if (typeof sanitizedPayload.f_expr === "string") {
+      sanitizedPayload.f_expr = normalizeMathExpression(sanitizedPayload.f_expr);
+    }
+
+    const response = await api.post(endpoint, sanitizedPayload);
     return response.data;
   } catch (error) {
     // Extract structured error message returned from FastAPI HTTPException or network error
