@@ -1,27 +1,62 @@
 :root {
+  /* Color Palette Tokens */
+  --bg-base: #080c14;
   --bg-main: #0b0f19;
-  --bg-panel: #1e293b;
   --bg-surface: #0f172a;
+  --bg-panel: #1e293b;
   --border: #334155;
   --border-subtle: #1e293b;
+  
+  /* Glass Tokens */
+  --glass-hero-bg: linear-gradient(135deg, rgba(15, 23, 42, 0.78) 0%, rgba(30, 41, 59, 0.62) 100%);
+  --glass-nav-bg: rgba(11, 17, 32, 0.82);
+  --glass-card-bg: rgba(15, 23, 42, 0.65);
+  --glass-drawer-bg: rgba(10, 15, 29, 0.88);
+  --glass-opaque-bg: rgba(15, 23, 42, 0.90);
+  --glass-input-bg: rgba(8, 12, 22, 0.75);
+
+  --border-glass: rgba(148, 163, 184, 0.12);
+  --border-glass-strong: rgba(56, 189, 248, 0.22);
+  --border-glass-card: rgba(148, 163, 184, 0.14);
+  --border-glass-subtle: rgba(255, 255, 255, 0.06);
+
+  --shadow-glass-sm: 0 4px 16px rgba(0, 0, 0, 0.25);
+  --shadow-glass-md: 0 8px 30px rgba(0, 0, 0, 0.35);
+  --shadow-glass-lg: 0 16px 40px -10px rgba(0, 0, 0, 0.6);
+  --shadow-glow-blue: 0 0 20px rgba(56, 189, 248, 0.12);
+
+  /* Typography & Text Tokens */
   --text-main: #f8fafc;
   --text-muted: #94a3b8;
   --text-dim: #64748b;
+  --text-high-contrast: #ffffff;
+
+  /* Accent Colors */
   --accent-blue: #38bdf8;
   --accent-blue-hover: #0284c7;
+  --accent-blue-dim: rgba(56, 189, 248, 0.12);
   --accent-indigo: #6366f1;
-  --accent-purple: #a855f7;
+  --accent-purple: #8b5cf6;
   --accent-green: #22c55e;
+  --accent-green-dim: rgba(34, 197, 94, 0.12);
   --accent-red: #ef4444;
+  --accent-red-dim: rgba(239, 68, 68, 0.12);
   --accent-amber: #f59e0b;
+  --accent-amber-dim: rgba(245, 158, 11, 0.12);
 
+  /* Fonts */
   --sans: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', monospace;
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-normal: 220ms ease;
+  --transition-slow: 300ms cubic-bezier(0.16, 1, 0.3, 1);
 
   font-family: var(--sans);
   color-scheme: dark;
   color: var(--text-main);
-  background-color: var(--bg-main);
+  background-color: var(--bg-base);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -32,11 +67,21 @@
   box-sizing: border-box;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
-  background-color: var(--bg-main);
+  background-color: var(--bg-base);
+  background-image: 
+    radial-gradient(ellipse 85% 50% at 50% -20%, rgba(56, 189, 248, 0.08), transparent 70%),
+    radial-gradient(ellipse 60% 40% at 90% 15%, rgba(139, 92, 246, 0.05), transparent 60%),
+    radial-gradient(ellipse 70% 50% at 10% 90%, rgba(37, 99, 235, 0.06), transparent 70%);
+  background-attachment: fixed;
+  background-repeat: no-repeat;
   color: var(--text-main);
   overflow-x: hidden;
 }
@@ -51,10 +96,12 @@ body {
   text-align: left;
 }
 
+/* Typography Hierarchy */
 h1, h2, h3, h4, h5, h6 {
   color: var(--text-main);
   font-weight: 600;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.025em;
+  margin: 0;
 }
 
 p {
@@ -64,11 +111,17 @@ p {
 code {
   font-family: var(--mono);
   font-size: 0.85em;
-  padding: 0.2em 0.4em;
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
+  padding: 0.2em 0.45em;
+  background: rgba(15, 23, 42, 0.8);
+  border: 1px solid var(--border-glass);
   border-radius: 4px;
   color: var(--accent-blue);
+}
+
+/* Accessibility Focus Ring */
+:focus-visible {
+  outline: 2px solid var(--accent-blue);
+  outline-offset: 2px;
 }
 
 /* Custom Scrollbars */
@@ -78,14 +131,25 @@ code {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-surface);
+  background: rgba(11, 17, 32, 0.6);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #334155;
+  background: rgba(51, 65, 85, 0.8);
   border-radius: 4px;
+  border: 2px solid rgba(11, 17, 32, 0.6);
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #475569;
+  background: rgba(71, 85, 105, 1);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

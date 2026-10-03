@@ -1,53 +1,136 @@
 /**
- * NumeriLab Sidebar Component.
- * Displays modules and quick access navigation for numerical methods.
+ * NumeriLab Collapsible Floating Navigation Drawer Component.
+ * Displays modules and quick access navigation in a toggleable glass overlay drawer.
  */
 
-import { MODULES } from "../data/methods";
+import { useEffect } from "react";
+import { MODULES, METHODS } from "../data/methods";
 
-export function Sidebar({ selectedModule, onSelectModule }) {
+export function Sidebar({
+  isOpen,
+  onClose,
+  selectedModule,
+  onSelectModule,
+  activeTab,
+  onNavigateTab,
+}) {
+  // Handle ESC key to close drawer
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape" && isOpen) {
+        onClose();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [isOpen, onClose]);
+
+  // Lock body scroll when drawer is open on mobile
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "";
+    }
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
+
   return (
-    <aside
-      style={{
-        width: "260px",
-        backgroundColor: "#0f172a",
-        color: "#94a3b8",
-        padding: "1.5rem 1rem",
-        borderRight: "1px solid #1e293b",
-        display: "flex",
-        flexDirection: "column",
-        gap: "0.5rem",
-      }}
-    >
-      <div style={{ fontSize: "0.75rem", fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.05em", color: "#64748b", marginBottom: "0.5rem", paddingLeft: "0.5rem" }}>
-        Course Modules
-      </div>
-      {MODULES.map((mod) => {
-        const isSelected = selectedModule === mod.id;
-        return (
+    <>
+      {/* Semi-transparent backdrop with click-to-close */}
+      <div
+        className={`sidebar-backdrop ${isOpen ? "open" : ""}`}
+        onClick={onClose}
+        aria-hidden={!isOpen}
+      />
+
+      {/* Floating Glass Drawer */}
+      <aside
+        className={`sidebar-drawer ${isOpen ? "open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Course navigation drawer"
+      >
+        {/* Drawer Header */}
+        <div className="sidebar-header">
+          <div className="sidebar-header-title">
+            <span style={{ color: "var(--accent-blue)" }}>❖</span>
+            <span>NumeriLab Navigator</span>
+          </div>
           <button
-            key={mod.id}
-            onClick={() => onSelectModule && onSelectModule(mod.id)}
-            style={{
-              textAlign: "left",
-              backgroundColor: isSelected ? "#1e293b" : "transparent",
-              color: isSelected ? "#38bdf8" : "#94a3b8",
-              border: "1px solid",
-              borderColor: isSelected ? "#38bdf8" : "transparent",
-              borderRadius: "8px",
-              padding: "0.75rem",
-              cursor: "pointer",
-              transition: "all 0.15s ease",
+            type="button"
+            className="btn-drawer-close"
+            onClick={onClose}
+            aria-label="Close navigation drawer"
+            title="Close (Esc)"
+          >
+            ✕
+          </button>
+        </div>
+
+        {/* Drawer Content */}
+        <div className="sidebar-content">
+          {/* Quick Primary Navigation: Dashboard only */}
+          <div className="sidebar-section-label">Main View</div>
+          <button
+            type="button"
+            className={`sidebar-module-item ${activeTab === "dashboard" ? "active" : ""}`}
+            onClick={() => {
+              onNavigateTab && onNavigateTab("dashboard");
+              onClose();
             }}
           >
-            <div style={{ fontWeight: 600, fontSize: "0.875rem" }}>{mod.name}</div>
-            <div style={{ fontSize: "0.75rem", color: "#64748b", marginTop: "2px" }}>
-              {mod.title}
+            <div className="sidebar-module-item-header">
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontSize: "0.95rem" }}>⌂</span>
+                <span className="sidebar-module-name">Dashboard</span>
+              </div>
             </div>
           </button>
-        );
-      })}
-    </aside>
+
+          {/* Course Modules */}
+          <div className="sidebar-section-label" style={{ marginTop: "1rem" }}>
+            Course Modules (I – V)
+          </div>
+          {MODULES.map((mod) => {
+            const isSelected = selectedModule === mod.id && activeTab === "modules";
+            const moduleMethodCount = METHODS.filter((m) => m.module === mod.id).length;
+
+            return (
+              <button
+                key={mod.id}
+                type="button"
+                className={`sidebar-module-item ${isSelected ? "active" : ""}`}
+                onClick={() => {
+                  onSelectModule && onSelectModule(mod.id);
+                  onClose();
+                }}
+              >
+                <div className="sidebar-module-item-header">
+                  <span className="sidebar-module-name">{mod.name}</span>
+                  <span
+                    style={{
+                      fontSize: "0.7rem",
+                      color: isSelected ? "var(--accent-blue)" : "var(--text-dim)",
+                      padding: "0.1rem 0.4rem",
+                      borderRadius: "4px",
+                      background: "rgba(15, 23, 42, 0.6)",
+                      border: "1px solid rgba(255, 255, 255, 0.05)",
+                    }}
+                  >
+                    {moduleMethodCount} methods
+                  </span>
+                </div>
+                <div className="sidebar-module-title">{mod.title}</div>
+              </button>
+            );
+          })}
+        </div>
+      </aside>
+    </>
   );
 }
 

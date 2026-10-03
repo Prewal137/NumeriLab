@@ -6,13 +6,13 @@ import { Sidebar } from "./components/Sidebar";
 import { Dashboard } from "./pages/Dashboard";
 import { ModulePage } from "./pages/ModulePage";
 import { MethodPage } from "./pages/MethodPage";
-import { VerificationPage } from "./pages/VerificationPage";
 
 function App() {
   const [backendStatus, setBackendStatus] = useState("Checking...");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [selectedModule, setSelectedModule] = useState(1);
   const [selectedMethod, setSelectedMethod] = useState(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   useEffect(() => {
     const checkBackend = async () => {
@@ -51,29 +51,38 @@ function App() {
     setActiveTab("modules");
   };
 
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    if (tab !== "method-detail") {
+      setSelectedMethod(null);
+    }
+  };
+
   return (
     <div className="app-container">
       <Navbar
         activeTab={activeTab}
-        onTabChange={(tab) => {
-          setActiveTab(tab);
-          if (tab !== "method-detail") {
-            setSelectedMethod(null);
-          }
-        }}
+        onTabChange={handleTabChange}
+        onToggleSidebar={() => setIsSidebarOpen((prev) => !prev)}
+        backendStatus={backendStatus}
+      />
+
+      <Sidebar
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+        selectedModule={selectedModule}
+        onSelectModule={handleSelectModule}
+        activeTab={activeTab}
+        onNavigateTab={handleTabChange}
       />
 
       <div className="main-layout">
-        <Sidebar
-          selectedModule={selectedModule}
-          onSelectModule={handleSelectModule}
-        />
-
         <main className="main-content">
           {activeTab === "dashboard" && (
             <Dashboard
               backendStatus={backendStatus}
               onSelectMethod={handleSelectMethod}
+              onSelectModule={handleSelectModule}
             />
           )}
 
@@ -92,8 +101,6 @@ function App() {
               onBack={handleBackToModules}
             />
           )}
-
-          {activeTab === "verification" && <VerificationPage />}
         </main>
       </div>
     </div>
