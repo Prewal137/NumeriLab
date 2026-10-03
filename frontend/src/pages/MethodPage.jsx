@@ -17,10 +17,13 @@ import { VisualizationRenderer } from "../components/visualization/Visualization
 import { formatNumber } from "../components/results/formatters";
 import {
   solveCubicSpline,
+  solveEuler,
   solveFixedPoint,
   solveGaussSeidel,
   solveInverseLagrange,
   solveLagrange,
+  solveModifiedEuler,
+  solveRK4,
   solveRomberg,
   solveSecant,
   solveSimpson,
@@ -69,6 +72,15 @@ export function MethodPage({ method, onBack }) {
           break;
         case "romberg":
           res = await solveRomberg(payload);
+          break;
+        case "euler":
+          res = await solveEuler(payload);
+          break;
+        case "modified-euler":
+          res = await solveModifiedEuler(payload);
+          break;
+        case "rk4":
+          res = await solveRK4(payload);
           break;
         default:
           throw new Error(`Solver for ${method.name} is scheduled for upcoming phases.`);
@@ -494,6 +506,49 @@ export function MethodPage({ method, onBack }) {
                   xᵢ^(k+1) = [ bᵢ - ∑_{'{'}j &lt; i{'}'} a_{'{'}ij{'}'} xⱼ^(k+1) - ∑_{'{'}j &gt; i{'}'} a_{'{'}ij{'}'} xⱼ^(k) ] / a_{'{'}ii{'}'}
                 </div>
                 <div><strong>Convergence Guarantee:</strong> Guaranteed for strictly diagonally dominant or symmetric positive-definite matrices.</div>
+              </>
+            )}
+
+            {method.id === "euler" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Euler's Explicit Method (Initial Value Problems):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px" }}>
+                  y_(n+1) = y_n + h · f(x_n, y_n),  where x_(n+1) = x_n + h
+                </div>
+                <div><strong>Principle:</strong> Uses the instantaneous slope f(x_n, y_n) at the beginning of each step to linearly advance the numerical solution.</div>
+                <div><strong>Local Truncation Error:</strong> O(h²) per step (Taylor series remainder term).</div>
+                <div><strong>Global Truncation Error:</strong> O(h) cumulative error over [x₀, x_end] (First-order accurate).</div>
+              </>
+            )}
+
+            {method.id === "modified-euler" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Modified Euler's Method (Heun's Predictor-Corrector):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                  <div><strong>Predictor:</strong> y*_(n+1) = y_n + h · f(x_n, y_n)</div>
+                  <div><strong>Corrector:</strong> y_(n+1) = y_n + (h / 2) · [ f(x_n, y_n) + f(x_(n+1), y*_(n+1)) ]</div>
+                </div>
+                <div><strong>Principle:</strong> First predicts an intermediate value y*_(n+1) using standard Euler stepping, evaluates the derivative at the predicted state, and applies the trapezoidal average slope to correct the step.</div>
+                <div><strong>Local Truncation Error:</strong> O(h³) per step.</div>
+                <div><strong>Global Truncation Error:</strong> O(h²) cumulative error (Second-order accurate).</div>
+              </>
+            )}
+
+            {method.id === "rk4" && (
+              <>
+                <div style={{ fontWeight: 600, color: "#38bdf8" }}>Fourth-Order Runge-Kutta Method (RK4):</div>
+                <div style={{ fontFamily: "var(--mono)", backgroundColor: "#1e293b", padding: "0.75rem", borderRadius: "6px", display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  <div>k₁ = f(x_n, y_n)</div>
+                  <div>k₂ = f(x_n + h/2, y_n + (h/2)·k₁)</div>
+                  <div>k₃ = f(x_n + h/2, y_n + (h/2)·k₂)</div>
+                  <div>k₄ = f(x_n + h, y_n + h·k₃)</div>
+                  <div style={{ borderTop: "1px solid #334155", paddingTop: "0.35rem", marginTop: "0.2rem", color: "#38bdf8" }}>
+                    y_(n+1) = y_n + (h / 6) · [ k₁ + 2·k₂ + 2·k₃ + k₄ ]
+                  </div>
+                </div>
+                <div><strong>Principle:</strong> Evaluates four trial slopes per step (initial slope k₁, two midpoint slopes k₂, k₃, and endpoint slope k₄) and computes a Simpson's-weighted average slope.</div>
+                <div><strong>Local Truncation Error:</strong> O(h⁵) per step.</div>
+                <div><strong>Global Truncation Error:</strong> O(h⁴) cumulative error (Fourth-order accurate).</div>
               </>
             )}
           </div>

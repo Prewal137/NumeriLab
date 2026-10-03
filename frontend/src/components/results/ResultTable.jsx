@@ -52,6 +52,13 @@ function getColumnHeader(key) {
     polynomial: "Piecewise S_i(x)",
     subintervals: "Subintervals (n)",
     step_size: "Step Size (h)",
+    step_h: "Step Size (h)",
+    y_pred: "Predicted y*",
+    f_pred: "f(xₙ₊₁, y*)",
+    k1: "k₁",
+    k2: "k₂",
+    k3: "k₃",
+    k4: "k₄",
     trapezoidal_R_k_0: "Trapezoidal R(k,0)",
     extrapolations: "Extrapolations R(k,j)",
     best_estimate: "Best Estimate R(k,k)",
@@ -147,7 +154,6 @@ export function ResultTable({ table, title, maxHeight = "400px" }) {
                     padding: "0.6rem 0.85rem",
                     color: "#cbd5e1",
                     fontWeight: 600,
-                    textTransform: "capitalize",
                     letterSpacing: "0.02em",
                   }}
                 >

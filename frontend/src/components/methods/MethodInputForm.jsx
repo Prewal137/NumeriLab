@@ -12,6 +12,9 @@ import { CubicSplineForm } from "./module2/CubicSplineForm";
 import { TrapezoidalForm } from "./module3/TrapezoidalForm";
 import { SimpsonForm } from "./module3/SimpsonForm";
 import { RombergForm } from "./module3/RombergForm";
+import { EulerForm } from "./module4/EulerForm";
+import { ModifiedEulerForm } from "./module4/ModifiedEulerForm";
+import { RK4Form } from "./module4/RK4Form";
 
 export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
   if (!method) return null;
@@ -92,6 +95,33 @@ export function MethodInputForm({ method, onSubmit, isLoading, onReset }) {
     case "romberg":
       return (
         <RombergForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "euler":
+      return (
+        <EulerForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "modified-euler":
+      return (
+        <ModifiedEulerForm
+          onSubmit={onSubmit}
+          isLoading={isLoading}
+          onReset={onReset}
+        />
+      );
+
+    case "rk4":
+      return (
+        <RK4Form
           onSubmit={onSubmit}
           isLoading={isLoading}
           onReset={onReset}
