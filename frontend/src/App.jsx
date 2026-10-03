@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import "./App.css";
 import { healthCheck } from "./services/api";
 import { Navbar } from "./components/Navbar";
 import { Sidebar } from "./components/Sidebar";
@@ -40,20 +41,18 @@ function App() {
 
   const handleSelectMethod = (method) => {
     setSelectedMethod(method);
+    if (method && method.module) {
+      setSelectedModule(method.module);
+    }
     setActiveTab("method-detail");
   };
 
+  const handleBackToModules = () => {
+    setActiveTab("modules");
+  };
+
   return (
-    <div
-      style={{
-        minHeight: "100vh",
-        display: "flex",
-        flexDirection: "column",
-        backgroundColor: "#0b0f19",
-        color: "#f8fafc",
-        fontFamily: "Inter, system-ui, -apple-system, sans-serif",
-      }}
-    >
+    <div className="app-container">
       <Navbar
         activeTab={activeTab}
         onTabChange={(tab) => {
@@ -64,13 +63,13 @@ function App() {
         }}
       />
 
-      <div style={{ display: "flex", flex: 1 }}>
+      <div className="main-layout">
         <Sidebar
           selectedModule={selectedModule}
           onSelectModule={handleSelectModule}
         />
 
-        <main style={{ flex: 1, padding: "2rem", overflowY: "auto" }}>
+        <main className="main-content">
           {activeTab === "dashboard" && (
             <Dashboard
               backendStatus={backendStatus}
@@ -88,8 +87,9 @@ function App() {
 
           {activeTab === "method-detail" && selectedMethod && (
             <MethodPage
+              key={selectedMethod.id}
               method={selectedMethod}
-              onBack={() => setActiveTab("modules")}
+              onBack={handleBackToModules}
             />
           )}
 

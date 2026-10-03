@@ -168,3 +168,7 @@ export const METHODS = [
     route: "/module5/crank-nicolson",
   },
 ];
+
+export const getModuleById = (id) => MODULES.find((m) => m.id === Number(id)) || null;
+export const getMethodById = (id) => METHODS.find((m) => m.id === id) || null;
+export const getMethodsByModule = (moduleId) => METHODS.filter((m) => m.module === Number(moduleId));
