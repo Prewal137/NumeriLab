@@ -12,6 +12,7 @@
 import { useState } from "react";
 import { getModuleById } from "../data/methods";
 import { MethodInputForm } from "../components/methods/MethodInputForm";
+import { NumericalResultPanel } from "../components/results/NumericalResultPanel";
 import {
   solveFixedPoint,
   solveGaussSeidel,
@@ -293,33 +294,28 @@ export function MethodPage({ method, onBack }) {
                 </h3>
                 <span style={{ fontSize: "0.75rem", color: "#64748b" }}>Chart Canvas Slot</span>
               </div>
-              <div className="slot-placeholder" style={{ minHeight: "240px" }}>
+              <div className="slot-placeholder" style={{ minHeight: "220px" }}>
                 <div style={{ fontWeight: 600, color: "#cbd5e1", marginBottom: "0.25rem" }}>
                   Graphical Plot Viewport
                 </div>
                 <div style={{ fontSize: "0.825rem", maxWidth: "380px" }}>
-                  High-resolution function curves, iteration step trajectories, and convergence rate curves will render here.
+                  High-resolution function curves, iteration step trajectories, and convergence rate curves will render here in upcoming charting phases.
                 </div>
               </div>
             </div>
 
-            {/* Iteration Table Slot */}
+            {/* Iteration Table & Error Analysis Component Panel */}
             <div className="panel-card" style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <h3 style={{ margin: 0, fontSize: "1.1rem", color: "#f8fafc" }}>
                   Iteration Table & Error Analysis
                 </h3>
                 <span style={{ fontSize: "0.75rem", color: "#64748b" }}>
-                  {result?.table ? `${result.table.length} rows recorded` : "Tabular Breakdown Slot"}
+                  {result?.table ? `${result.table.length} rows recorded` : "Awaiting Execution"}
                 </span>
               </div>
-              <div className="slot-placeholder" style={{ minHeight: "120px" }}>
-                <div style={{ fontSize: "0.825rem", color: "#94a3b8" }}>
-                  {result?.table
-                    ? `${result.table.length} intermediate iteration steps computed. Full interactive table renderer will be mounted in upcoming steps.`
-                    : "Step-by-step intermediate evaluations, difference quotients, and benchmark comparisons will be tabulated here."}
-                </div>
-              </div>
+              
+              <NumericalResultPanel result={result} maxHeight="420px" />
             </div>
           </div>
         </div>
