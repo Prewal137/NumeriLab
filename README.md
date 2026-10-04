@@ -284,9 +284,6 @@ npm run build
 
 ---
 
-## Screenshots
-
-> *Screenshots can be added here after deployment or final capture.*
 
 ---
 
